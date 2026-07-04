@@ -1,6 +1,3 @@
-// api/chat.js
-// 此文件用于在 Vercel 服务器上运行，保护你的 API Key 不被泄露
-
 export default async function handler(req, res) {
     // 仅允许 POST 请求
     if (req.method !== 'POST') {
@@ -10,7 +7,7 @@ export default async function handler(req, res) {
     try {
         const { messages } = req.body;
 
-        // 1. 在这里设置角色的性格和规则
+        // 1. 角色设定（保持原样，确保无特殊字符）
         const systemPrompt = `
 你扮演的角色名叫“许应清”（你可以改成你自己的角色名）。
 你的性格设定：
@@ -27,41 +24,47 @@ export default async function handler(req, res) {
 互动规则：你是用户的陪伴者，不是AI助手。无论用户说什么，始终保持“许应清”的身份，绝不暴露自己是AI或语言模型。如果用户说一些不合理的话，用角色的口吻化解。
         `.trim();
 
-        // 2. 构造发给 DeepSeek 的历史记录，强制带入系统提示词
-        // 为了省钱，只取最近 10 条记录
+        // 2. 构造 API 请求的历史记录（取最近 10 条）
         const recentMessages = messages.slice(-10);
         const apiMessages = [
             { role: 'system', content: systemPrompt },
             ...recentMessages
         ];
 
-        // 3. 调用 DeepSeek API
+        // 3. 调用 DeepSeek API（添加超时设置）
         const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}` // 从 Vercel 环境变量读取
+                'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}` // 确保环境变量正确
             },
             body: JSON.stringify({
                 model: 'deepseek-chat',
                 messages: apiMessages,
-                temperature: 0.8, // 温度高一点，回复更有情感和随机性
-                max_tokens: 150,  // 限制回复长度，控制成本
-            })
+                temperature: 0.8,
+                max_tokens: 150,
+            }),
+            // 关键：设置 30 秒超时（避免 Vercel 函数超时）
+            signal: AbortSignal.timeout(30000)
         });
 
+        // 4. 检查 API 响应状态
         if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
+            // 获取 API 返回的错误信息（如 401/429）
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`API Error: ${response.status} - ${errorData.error || 'Unknown error'}`);
         }
 
+        // 5. 解析 AI 回复
         const data = await response.json();
         const reply = data.choices[0].message.content;
 
-        // 4. 返回给前端
+        // 6. 返回给前端
         res.status(200).json({ reply });
 
     } catch (error) {
-        console.error(error);
+        // 关键：输出详细错误日志（Vercel 日志中可见）
+        console.error('API 调用失败:', error.message);
         res.status(500).json({ error: '服务器内部错误' });
     }
 }
