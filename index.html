@@ -300,6 +300,41 @@
         });
 
         initChat();
+        <script>
+let idleTimer = null;
+function startIdleTimer() {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(async () => {
+        let currentHistory = [];
+        if (typeof messages !== 'undefined') currentHistory = messages;
+        else if (typeof chatHistory !== 'undefined') currentHistory = chatHistory;
+        else if (typeof history !== 'undefined') currentHistory = history;
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: currentHistory, isIdle: true })
+            });
+            const data = await res.json();
+            if (typeof addMessage === 'function') addMessage('许应清', data.reply);
+            else if (typeof appendMessage === 'function') appendMessage('许应清', data.reply);
+            else alert("测试弹窗-许应清说：" + data.reply);
+            startIdleTimer();
+        } catch (err) { console.error(err); }
+    }, 10000);
+}
+document.addEventListener('DOMContentLoaded', () => {
+    startIdleTimer();
+    const allButtons = document.querySelectorAll('button');
+    allButtons.forEach(btn => {
+        if (btn.innerText.includes('发送') || btn.innerText.includes('Send')) {
+            btn.addEventListener('click', startIdleTimer);
+        }
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') startIdleTimer();
+    });
+});
     </script>
 </body>
 </html>
