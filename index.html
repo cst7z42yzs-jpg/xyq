@@ -248,6 +248,31 @@
             }
         }
 
+        let idleTimer = null;
+
+function startIdleTimer() {
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: chatHistory, // ⚠️把这里换成你存聊天记录的变量名
+          isIdle: true
+        })
+      });
+      const data = await res.json();
+      
+      addMessage('许应清', data.reply); // ⚠️把这里换成你往屏幕加气泡的代码
+      
+      startIdleTimer();
+    } catch (err) {
+      console.log('失败');
+    }
+  }, 10 * 1000); // 先写10秒方便测试！
+      }
+
         // 发送消息逻辑
         async function sendMessage() {
             const text = userInput.value.trim();
@@ -278,6 +303,9 @@
 
                 const replyText = data.reply;
                 const bubble = renderMessage('character', '');
+
+                  startIdleTimer(); // 👈 就加这一行！在函数的最后面
+            }
                 
                 // 打字机效果显示回复
                 await typeWriter(bubble, replyText);
