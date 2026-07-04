@@ -303,8 +303,6 @@ function startIdleTimer() {
 
                 const replyText = data.reply;
                 const bubble = renderMessage('character', '');
-
-                startIdleTimer(); 
                 
                 // 打字机效果显示回复
                 await typeWriter(bubble, replyText);
