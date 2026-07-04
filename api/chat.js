@@ -4,8 +4,20 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
+    // 👇 第1步：拿到前端发来的消息和暗号
+  const { messages, isIdle } = req.body;
+  let messagesToSend = [...messages];
+
+  // 👇 第2步：如果带有暗号，塞一张小纸条
+  if (isIdle) {
+    apimessagesToSend.push({
+      role: "system", 
+      content: "（系统提示：用户已经3分钟没有回复你了。请你用符合自己性格的语气，主动发一句话引起他的注意，或者吐槽他半天不回消息。要求像日常聊天一样简短自然，不要重复之前说过的话。）"
+    });
+  }
+    
     try {
-        const { messages } = req.body;
+        const { messages，isIdle } = req.body;
 
         // 1. 角色设定（保持原样，确保无特殊字符）
         const systemPrompt = `
