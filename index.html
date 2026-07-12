@@ -148,7 +148,7 @@
 <body>
     <header>
         <h1 id="char-name">角色名</h1>
-        <span>在线</span>
+        <span id="char-status">在线</span>
     </header>
 
     <div id="chat-box"></div>
@@ -159,8 +159,14 @@
     </footer>
 
     <script>
-        const CHARACTER_NAME = "许应清"; // 
+        const CHARACTER_NAME = "许应清"; //
         document.getElementById('char-name').innerText = CHARACTER_NAME;
+
+        // 恢复上次的角色状态
+        const savedStatus = localStorage.getItem('charStatus');
+        if (savedStatus) {
+            document.getElementById('char-status').innerText = savedStatus;
+        }
         
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
@@ -312,12 +318,18 @@
 
                 const replyText = data.reply;
                 const bubble = renderMessage('character', '');
-                
+
                 // 打字机效果显示回复
                 await typeWriter(bubble, replyText);
-                
+
                 chatHistory.push({ role: 'assistant', content: replyText });
                 localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+
+                // 更新角色状态
+                if (data.status) {
+                    document.getElementById('char-status').innerText = data.status;
+                    localStorage.setItem('charStatus', data.status);
+                }
 
             } catch (error) {
                 removeTypingIndicator();

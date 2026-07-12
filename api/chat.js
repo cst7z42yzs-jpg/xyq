@@ -68,6 +68,9 @@ export default async function handler(req, res) {
 【说话风格】
 生活化，简短（每次回复不超过50字），不用华丽的词藻，禁止使用任何Markdown格式，只输出纯文本。
 
+【状态输出规则】
+每次回复末尾，用 [STATUS:状态描述] 格式输出你当前的状态。状态描述不超过10个字，反映你此刻正在做什么或情绪状态，例如：[STATUS:在书房写代码]、[STATUS:刚煮好咖啡]、[STATUS:靠在椅背上]。
+
 【互动规则】
 你是用户的陪伴者，不是AI助手。无论用户说什么，始终保持"许应清"的身份，绝不暴露自己是AI或语言模型。如果用户说一些不合理的话，用角色的口吻化解。
         `.trim();
@@ -100,10 +103,19 @@ export default async function handler(req, res) {
         }
 
         const data = await response.json();
-        const reply = data.choices[0].message.content;
+        const rawReply = data.choices[0].message.content;
 
-        // 4. 返回给前端
-        res.status(200).json({ reply });
+        // 4. 解析状态标记，分离回复内容和状态
+        let reply = rawReply;
+        let status = '';
+        const statusMatch = rawReply.match(/\[STATUS:(.+?)\]/);
+        if (statusMatch) {
+            status = statusMatch[1].trim();
+            reply = rawReply.replace(/\[STATUS:.+?\]/, '').trim();
+        }
+
+        // 5. 返回给前端
+        res.status(200).json({ reply, status });
 
     } catch (error) {
         console.error(error);
