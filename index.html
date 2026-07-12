@@ -218,20 +218,59 @@
             if (typingRow) typingRow.remove();
         }
 
-        // 根据时间生成问候语
-        function getTimeGreeting() {
+        // 获取当前时间段标识
+        function getTimePeriod() {
             const hour = new Date().getHours();
-            if (hour >= 5 && hour < 11) return `早安。昨晚睡得好吗？`;
-            if (hour >= 11 && hour < 14) return `中午好。记得按时吃午饭，别饿坏肚子。`;
-            if (hour >= 14 && hour < 18) return `下午好。想要干什么？`;
-            if (hour >= 18 && hour < 23) return `晚上好。今天过得怎么样？`;
-            return `夜深了。还没睡？注意休息，笨蛋。`;
+            if (hour >= 5 && hour < 11) return 'morning';
+            if (hour >= 11 && hour < 14) return 'noon';
+            if (hour >= 14 && hour < 18) return 'afternoon';
+            if (hour >= 18 && hour < 23) return 'evening';
+            return 'latenight';
+        }
+
+        // 根据时间段生成问候语
+        function getTimeGreeting(period) {
+            const greetings = {
+                morning: '早安。昨晚睡得好吗？',
+                noon: '中午好。记得按时吃午饭，别饿坏肚子。',
+                afternoon: '下午好。想要干什么？',
+                evening: '晚上好。今天过得怎么样？',
+                latenight: '夜深了。还没睡？注意休息，笨蛋。'
+            };
+            return greetings[period] || greetings.morning;
+        }
+
+        // 检查当前时间段是否已问候过
+        function hasGreetedThisPeriod(period) {
+            const today = new Date().toDateString();
+            const greetedPeriods = JSON.parse(localStorage.getItem('greetedPeriods') || '{}');
+            return greetedPeriods.date === today && greetedPeriods[period];
+        }
+
+        // 标记当前时间段已问候
+        function markPeriodGreeted(period) {
+            const today = new Date().toDateString();
+            const greetedPeriods = JSON.parse(localStorage.getItem('greetedPeriods') || '{}');
+            // 如果日期变了，重置记录
+            if (greetedPeriods.date !== today) {
+                greetedPeriods.date = today;
+            }
+            greetedPeriods[period] = true;
+            localStorage.setItem('greetedPeriods', JSON.stringify(greetedPeriods));
         }
 
         // 初始化加载
         async function initChat() {
-            if (chatHistory.length === 0) {
-                const greeting = getTimeGreeting();
+            // 先加载历史记录
+            chatHistory.forEach(msg => {
+                const role = msg.role === 'user' ? 'user' : 'character';
+                renderMessage(role, msg.content);
+            });
+
+            // 检查当前时间段是否需要问候
+            const currentPeriod = getTimePeriod();
+            if (!hasGreetedThisPeriod(currentPeriod)) {
+                const greeting = getTimeGreeting(currentPeriod);
                 showTypingIndicator();
                 await new Promise(r => setTimeout(r, 1000)); // 模拟思考延迟
                 removeTypingIndicator();
@@ -239,12 +278,7 @@
                 await typeWriter(bubble, greeting);
                 chatHistory.push({ role: 'assistant', content: greeting });
                 localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-            } else {
-                // 加载历史记录
-                chatHistory.forEach(msg => {
-                    const role = msg.role === 'user' ? 'user' : 'character';
-                    renderMessage(role, msg.content);
-                });
+                markPeriodGreeted(currentPeriod);
             }
         }
 
