@@ -157,6 +157,7 @@
     <header>
         <h1 id="char-name">角色名</h1>
         <span id="char-status">在线</span>
+        <div id="db-status" style="font-size:10px;color:#666;margin-top:4px;">数据库连接中...</div>
     </header>
 
     <div id="chat-box"></div>
@@ -285,12 +286,20 @@
         // 初始化加载
         async function initChat() {
             // 从 Supabase 加载历史记录
-            const dbHistory = await getChatHistory(userId);
-            // 转换为内存格式
-            chatHistory = dbHistory.map(row => ({
-                role: row.sender,
-                content: row.message
-            }));
+            try {
+                const dbHistory = await getChatHistory(userId);
+                document.getElementById('db-status').innerText =
+                    '已连接 · 共 ' + dbHistory.length + ' 条记录';
+                // 转换为内存格式
+                chatHistory = dbHistory.map(row => ({
+                    role: row.sender,
+                    content: row.message
+                }));
+            } catch (e) {
+                document.getElementById('db-status').innerText =
+                    '数据库错误: ' + (e.message || '未知错误');
+                document.getElementById('db-status').style.color = '#ff6b6b';
+            }
 
             // 渲染历史记录
             chatHistory.forEach(msg => {
