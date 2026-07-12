@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Supabase 配置 - 请替换为你的项目地址和 anon key
 // 可在 Supabase 控制台 → Settings → API 中找到
-const SUPABASE_URL = 'https://111.supabase.co';
+const SUPABASE_URL = 'https://ppveupbcsfucbwpnuuvt.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_ojmjS_1idBfOwknHzmuLUw_uOB0m5Sg';
 
 // 初始化 Supabase 客户端
