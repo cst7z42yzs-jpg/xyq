@@ -25,13 +25,13 @@ export async function saveChatMessage(userId, sender, message) {
                     sender: sender,
                     message: message,
                 }
-            ])
-            .select();
+            ]);
 
         if (error) throw error;
         return { success: true, data };
     } catch (error) {
-        console.error('保存聊天记录失败:', error.message);
+        console.error('保存聊天记录失败:', error.message, error);
+        window.__supabaseError = error.message;
         return { success: false, error };
     }
 }
