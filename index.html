@@ -166,21 +166,30 @@
         <button id="send-btn">发送</button>
     </footer>
 
-    <script>
+    <script type="module">
+        import { saveChatMessage, getChatHistory } from './src/lib/supabaseClient.js';
+
         const CHARACTER_NAME = "许应清"; //
         document.getElementById('char-name').innerText = CHARACTER_NAME;
+
+        // 生成或恢复访客唯一ID
+        let userId = localStorage.getItem('userId');
+        if (!userId) {
+            userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('userId', userId);
+        }
 
         // 恢复上次的角色状态
         const savedStatus = localStorage.getItem('charStatus');
         if (savedStatus) {
             document.getElementById('char-status').innerText = savedStatus;
         }
-        
+
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
-        
-        let chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
+
+        let chatHistory = []; // 内存中维护，供API调用
         let isTyping = false;
 
         // 渲染单条消息
@@ -275,7 +284,15 @@
 
         // 初始化加载
         async function initChat() {
-            // 先加载历史记录
+            // 从 Supabase 加载历史记录
+            const dbHistory = await getChatHistory(userId);
+            // 转换为内存格式
+            chatHistory = dbHistory.map(row => ({
+                role: row.sender,
+                content: row.message
+            }));
+
+            // 渲染历史记录
             chatHistory.forEach(msg => {
                 const role = msg.role === 'user' ? 'user' : 'character';
                 renderMessage(role, msg.content);
@@ -291,7 +308,8 @@
                 const bubble = renderMessage('character', '');
                 await typeWriter(bubble, greeting);
                 chatHistory.push({ role: 'assistant', content: greeting });
-                localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                // 存到 Supabase
+                saveChatMessage(userId, 'assistant', greeting);
                 markPeriodGreeted(currentPeriod);
             }
         }
@@ -307,7 +325,8 @@
 
             renderMessage('user', text);
             chatHistory.push({ role: 'user', content: text });
-            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+            // 存到 Supabase（不等返回，不阻塞UI）
+            saveChatMessage(userId, 'user', text);
 
             showTypingIndicator();
 
@@ -320,7 +339,7 @@
                 });
 
                 if (!response.ok) throw new Error('网络错误');
-                
+
                 const data = await response.json();
                 removeTypingIndicator();
 
@@ -331,7 +350,8 @@
                 await typeWriter(bubble, replyText);
 
                 chatHistory.push({ role: 'assistant', content: replyText });
-                localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+                // 存到 Supabase
+                saveChatMessage(userId, 'assistant', replyText);
 
                 // 更新角色状态
                 if (data.status) {
