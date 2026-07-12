@@ -335,7 +335,12 @@
             renderMessage('user', text);
             chatHistory.push({ role: 'user', content: text });
             // 存到 Supabase（不等返回，不阻塞UI）
-            saveChatMessage(userId, 'user', text);
+            const saveResult = await saveChatMessage(userId, 'user', text);
+            if (!saveResult.success) {
+                document.getElementById('db-status').innerText =
+                    '写入失败: ' + (saveResult.error?.message || '未知');
+                document.getElementById('db-status').style.color = '#ff6b6b';
+            }
 
             showTypingIndicator();
 
